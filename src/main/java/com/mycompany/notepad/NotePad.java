@@ -4,9 +4,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
+//import javax.swing.filechooser.FileNameExtensionFilter;
 
-public class NotePad extends JFrame implements ActionListener, WindowListener {
+public final class NotePad extends JFrame implements ActionListener, WindowListener {
 
     JTextArea jta = new JTextArea();
     File fnameContainer;
@@ -96,7 +96,7 @@ public class NotePad extends JFrame implements ActionListener, WindowListener {
             if (fnameContainer != null) {
                 try {
                     SaveFile(fnameContainer.getAbsolutePath());
-                } catch (Exception ex) {
+                } catch (IOException ex) {
                     ex.printStackTrace();
                 }
             } else {
@@ -107,7 +107,7 @@ public class NotePad extends JFrame implements ActionListener, WindowListener {
                         SaveFile(fyl.getAbsolutePath());
                         this.setTitle(fyl.getName() + " - NotePad");
                         fnameContainer = fyl;
-                    } catch (Exception ex) {
+                    } catch (IOException ex) {
                         ex.printStackTrace();
                     }
                 }
@@ -120,7 +120,7 @@ public class NotePad extends JFrame implements ActionListener, WindowListener {
                     SaveFile(fyl.getAbsolutePath());
                     this.setTitle(fyl.getName() + " - NotePad");
                     fnameContainer = fyl;
-                } catch (Exception ex) {
+                } catch (IOException ex) {
                     ex.printStackTrace();
                 }
             }
@@ -142,6 +142,26 @@ public class NotePad extends JFrame implements ActionListener, WindowListener {
                     jta.select(searchIndex, searchIndex + find.length());
                     jta.grabFocus();
                     searchIndex += find.length(); // Cập nhật vị trí tìm kiếm để tìm tiếp
+                    // Thêm nút Find Next
+                    int option = JOptionPane.showConfirmDialog(this, "Find Next?", "Find", JOptionPane.YES_NO_OPTION);
+                    if (option == JOptionPane.YES_OPTION) {
+                        searchIndex = text.indexOf(find, searchIndex);
+                        while (searchIndex != -1) {
+                            jta.setCaretPosition(searchIndex);
+                            jta.select(searchIndex, searchIndex + find.length());
+                            jta.grabFocus();
+                            searchIndex += find.length(); // Cập nhật vị trí tìm kiếm để tìm tiếp
+                            option = JOptionPane.showConfirmDialog(this, "Find Next?", "Find", JOptionPane.YES_NO_OPTION);
+                            if (option != JOptionPane.YES_OPTION) {
+                                break;
+                            }
+                            searchIndex = text.indexOf(find, searchIndex);
+                        }
+                        if (searchIndex == -1) {
+                            JOptionPane.showMessageDialog(this, "Text not found!", "Find", JOptionPane.INFORMATION_MESSAGE);
+                            searchIndex = 0; // Reset vị trí tìm kiếm nếu không tìm thấy
+                        }
+                    }
                 } else {
                     JOptionPane.showMessageDialog(this, "Text not found!", "Find", JOptionPane.INFORMATION_MESSAGE);
                     searchIndex = 0; // Reset vị trí tìm kiếm nếu không tìm thấy
@@ -230,7 +250,4 @@ public class NotePad extends JFrame implements ActionListener, WindowListener {
     public void Exiting() {
         System.exit(0);
     }
-//    public static void main(String[] args) {
-//        new NotePad();
-//    }
 }
