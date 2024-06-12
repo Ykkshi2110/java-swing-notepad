@@ -1,17 +1,16 @@
 package com.mycompany.notepad;
 
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicButtonUI;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-//import javax.swing.filechooser.FileNameExtensionFilter;
 
-public final class NotePad extends JFrame implements ActionListener, WindowListener {
+public class NotePad extends JFrame implements ActionListener, WindowListener {
 
-    JTextArea jta = new JTextArea();
-    File fnameContainer;
+    JTabbedPane tabbedPane = new JTabbedPane();
     private int fontSize = 15;
-    private int searchIndex = 0; // Thêm biến để theo dõi vị trí tìm kiếm hiện tại
+    private int searchIndex = 0;
 
     public NotePad() {
         Font fnt = new Font("Arial", Font.PLAIN, fontSize);
@@ -23,17 +22,12 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
         JMenu jmhelp = new JMenu("Help");
 
         con.setLayout(new BorderLayout());
-        JScrollPane sbrText = new JScrollPane(jta);
-        sbrText.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        sbrText.setVisible(true);
 
-        jta.setFont(fnt);
-        jta.setLineWrap(true);
-        jta.setWrapStyleWord(true);
+        addNewTab("Untitled.txt", fnt);
 
-        con.add(sbrText);
+        con.add(tabbedPane);
 
-        createMenuItem(jmfile, "New");
+        createMenuItem(jmfile, "New Tab");
         createMenuItem(jmfile, "Open");
         createMenuItem(jmfile, "Save");
         createMenuItem(jmfile, "Save As");
@@ -65,6 +59,25 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
         setVisible(true);
     }
 
+    void addNewTab(String title, Font font) {
+        JScrollPane newTab = createNewTab(font);
+        tabbedPane.addTab(title, newTab);
+        int index = tabbedPane.indexOfComponent(newTab);
+        tabbedPane.setTabComponentAt(index, new ButtonTabComponent(tabbedPane, this));
+        tabbedPane.setSelectedIndex(index);
+    }
+
+    private JScrollPane createNewTab(Font font) {
+        JTextArea jta = new JTextArea();
+        jta.setFont(font);
+        jta.setLineWrap(true);
+        jta.setWrapStyleWord(true);
+        JScrollPane sbrText = new JScrollPane(jta);
+        sbrText.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        sbrText.setVisible(true);
+        return sbrText;
+    }
+
     public void createMenuItem(JMenu jm, String txt) {
         JMenuItem jmi = new JMenuItem(txt);
         jmi.addActionListener(this);
@@ -74,52 +87,34 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
     @Override
     public void actionPerformed(ActionEvent e) {
         JFileChooser jfc = new JFileChooser();
-        if (e.getActionCommand().equals("New")) {
-            this.setTitle("Untitled.txt - NotePad");
-            jta.setText("");
-            fnameContainer = null;
-            searchIndex = 0; // Reset vị trí tìm kiếm khi tạo tài liệu mới
+        JScrollPane currentScrollPane = (JScrollPane) tabbedPane.getSelectedComponent();
+        JTextArea jta = (JTextArea) currentScrollPane.getViewport().getView();
+
+        if (e.getActionCommand().equals("New Tab")) {
+            addNewTab("Untitled.txt", new Font("Arial", Font.PLAIN, fontSize));
         } else if (e.getActionCommand().equals("Open")) {
             int ret = jfc.showDialog(null, "Open");
             if (ret == JFileChooser.APPROVE_OPTION) {
                 try {
                     File fyl = jfc.getSelectedFile();
-                    OpenFile(fyl.getAbsolutePath());
-                    this.setTitle(fyl.getName() + " - NotePad");
-                    fnameContainer = fyl;
-                    searchIndex = 0; // Reset vị trí tìm kiếm khi mở tài liệu mới
+                    OpenFile(fyl.getAbsolutePath(), jta);
+                    tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), fyl.getName());
+                    setTitle(fyl.getName() + " - NotePad");
+                    searchIndex = 0;
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
             }
         } else if (e.getActionCommand().equals("Save")) {
-            if (fnameContainer != null) {
-                try {
-                    SaveFile(fnameContainer.getAbsolutePath());
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
-            } else {
-                int ret = jfc.showDialog(null, "Save");
-                if (ret == JFileChooser.APPROVE_OPTION) {
-                    try {
-                        File fyl = jfc.getSelectedFile();
-                        SaveFile(fyl.getAbsolutePath());
-                        this.setTitle(fyl.getName() + " - NotePad");
-                        fnameContainer = fyl;
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
-                    }
-                }
-            }
+            saveTab();
         } else if (e.getActionCommand().equals("Save As")) {
             int ret = jfc.showDialog(null, "Save As");
             if (ret == JFileChooser.APPROVE_OPTION) {
                 try {
                     File fyl = jfc.getSelectedFile();
-                    SaveFile(fyl.getAbsolutePath());
-                    this.setTitle(fyl.getName() + " - NotePad");
-                    fnameContainer = fyl;
+                    SaveFile(fyl.getAbsolutePath(), jta);
+                    tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), fyl.getName());
+                    setTitle(fyl.getName() + " - NotePad");
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
@@ -141,8 +136,7 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
                     jta.setCaretPosition(searchIndex);
                     jta.select(searchIndex, searchIndex + find.length());
                     jta.grabFocus();
-                    searchIndex += find.length(); // Cập nhật vị trí tìm kiếm để tìm tiếp
-                    // Thêm nút Find Next
+                    searchIndex += find.length();
                     int option = JOptionPane.showConfirmDialog(this, "Find Next?", "Find", JOptionPane.YES_NO_OPTION);
                     if (option == JOptionPane.YES_OPTION) {
                         searchIndex = text.indexOf(find, searchIndex);
@@ -150,7 +144,7 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
                             jta.setCaretPosition(searchIndex);
                             jta.select(searchIndex, searchIndex + find.length());
                             jta.grabFocus();
-                            searchIndex += find.length(); // Cập nhật vị trí tìm kiếm để tìm tiếp
+                            searchIndex += find.length();
                             option = JOptionPane.showConfirmDialog(this, "Find Next?", "Find", JOptionPane.YES_NO_OPTION);
                             if (option != JOptionPane.YES_OPTION) {
                                 break;
@@ -159,12 +153,12 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
                         }
                         if (searchIndex == -1) {
                             JOptionPane.showMessageDialog(this, "Text not found!", "Find", JOptionPane.INFORMATION_MESSAGE);
-                            searchIndex = 0; // Reset vị trí tìm kiếm nếu không tìm thấy
+                            searchIndex = 0;
                         }
                     }
                 } else {
                     JOptionPane.showMessageDialog(this, "Text not found!", "Find", JOptionPane.INFORMATION_MESSAGE);
-                    searchIndex = 0; // Reset vị trí tìm kiếm nếu không tìm thấy
+                    searchIndex = 0;
                 }
             }
         } else if (e.getActionCommand().equals("Replace")) {
@@ -193,11 +187,43 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
                 jta.setFont(new Font("Arial", Font.PLAIN, fontSize));
             }
         } else if (e.getActionCommand().equals("About Notepad")) {
-            JOptionPane.showMessageDialog(this, "Created by: Bao Thien", "Notepad", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "created by 'Ba chàng lính ngự lâm'", "Notepad", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
-    public void OpenFile(String fname) throws IOException {
+    private void saveTab() {
+    JScrollPane currentScrollPane = (JScrollPane) tabbedPane.getSelectedComponent();
+    JTextArea jta = (JTextArea) currentScrollPane.getViewport().getView();
+    int selectedIndex = tabbedPane.getSelectedIndex();
+    if (selectedIndex >= 0) {
+        String title = tabbedPane.getTitleAt(selectedIndex);
+        if (!title.equals("Untitled.txt")) {
+            try {
+                // Lưu dữ liệu vào tệp
+                SaveFile(title, jta);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        } else {
+            // Nếu tab chưa được lưu, hiển thị hộp thoại lưu
+            JFileChooser jfc = new JFileChooser();
+            int ret = jfc.showDialog(null, "Save");
+            if (ret == JFileChooser.APPROVE_OPTION) {
+                try {
+                    File fyl = jfc.getSelectedFile();
+                    SaveFile(fyl.getAbsolutePath(), jta);
+                    tabbedPane.setTitleAt(selectedIndex, fyl.getName());
+                    setTitle(fyl.getName() + " - NotePad");
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+    }
+}
+
+
+    public void OpenFile(String fname, JTextArea jta) throws IOException {
         BufferedReader d = new BufferedReader(new InputStreamReader(new FileInputStream(fname)));
         String l;
         jta.setText("");
@@ -207,15 +233,16 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
         }
         setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
         d.close();
-        searchIndex = 0; // Reset vị trí tìm kiếm khi mở file
+        searchIndex = 0;
     }
 
-    public void SaveFile(String fname) throws IOException {
-        setCursor(new Cursor(Cursor.WAIT_CURSOR));
+    public boolean SaveFile(String fname, JTextArea jta) throws IOException {
+        System.out.println("Saving file: " + fname);
         BufferedWriter out = new BufferedWriter(new FileWriter(fname));
         out.write(jta.getText());
         out.close();
-        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+        System.out.println("File saved successfully.");
+        return true;
     }
 
     @Override
@@ -249,5 +276,130 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
 
     public void Exiting() {
         System.exit(0);
+    }
+
+    public static void main(String[] args) {
+        new NotePad();
+    }
+}
+
+class ButtonTabComponent extends JPanel {
+    private final JTabbedPane pane;
+    private final NotePad notePad;
+
+    public ButtonTabComponent(final JTabbedPane pane, NotePad notePad) {
+        super(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        if (pane == null) {
+            throw new NullPointerException("TabbedPane is null");
+        }
+        this.pane = pane;
+        this.notePad = notePad;
+        setOpaque(false);
+
+        JLabel label = new JLabel() {
+            public String getText() {
+                int i = pane.indexOfTabComponent(ButtonTabComponent.this);
+                if (i != -1) {
+                    return pane.getTitleAt(i);
+                }
+                return null;
+            }
+        };
+
+        add(label);
+        label.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
+        JButton button = new TabButton();
+        add(button);
+        setBorder(BorderFactory.createEmptyBorder(2, 0, 0, 0));
+    }
+
+    private class TabButton extends JButton implements ActionListener {
+        public TabButton() {
+            int size = 17;
+            setPreferredSize(new Dimension(size, size));
+            setToolTipText("close this tab");
+            setUI(new BasicButtonUI());
+            setContentAreaFilled(false);
+            setFocusable(false);
+            setBorder(BorderFactory.createEtchedBorder());
+            setBorderPainted(false);
+            addMouseListener(new MouseAdapter() {
+                public void mouseEntered(MouseEvent e) {
+                    setBorderPainted(true);
+                }
+
+                public void mouseExited(MouseEvent e) {
+                    setBorderPainted(false);
+                }
+            });
+            setRolloverEnabled(true);
+            addActionListener(this);
+        }
+
+        public void actionPerformed(ActionEvent e) {
+    int i = pane.indexOfTabComponent(ButtonTabComponent.this);
+    if (i != -1) {
+        JScrollPane currentScrollPane = (JScrollPane) pane.getComponentAt(i);
+        JTextArea jta = (JTextArea) currentScrollPane.getViewport().getView();
+
+        // Check if the tab has unsaved changes
+        if (hasUnsavedChanges(jta)) {
+            // Kiểm tra nội dung trong JTextArea
+            if (jta.getText().trim().isEmpty()) {
+                // Nếu không có nội dung, đóng tab luôn
+                pane.remove(i);
+                return;
+            }
+
+            // Nếu có nội dung, hiển thị hộp thoại xác nhận
+            int option = JOptionPane.showConfirmDialog(null, "Do you want to save this file?", "Save File", JOptionPane.YES_NO_CANCEL_OPTION);
+            if (option == JOptionPane.YES_OPTION) {
+                try {
+                    // Lưu file
+                    notePad.SaveFile(pane.getTitleAt(i), jta);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                    return; // Nếu có lỗi xảy ra trong quá trình lưu, không đóng tab
+                }
+            } else if (option == JOptionPane.CANCEL_OPTION || option == JOptionPane.CLOSED_OPTION) {
+                // Nếu người dùng hủy hoặc đóng hộp thoại, không đóng tab
+                return;
+            }
+        }
+
+        // Kiểm tra xem có phải là tab cuối cùng không
+        if (pane.getTabCount() == 1) {
+            JOptionPane.showMessageDialog(null, "Cannot close the last tab.", "NotePad", JOptionPane.ERROR_MESSAGE);
+            return; // Không đóng tab nếu là tab cuối cùng
+        }
+
+        // Xoá tab
+        pane.remove(i);
+    }
+}
+
+        public boolean hasUnsavedChanges(JTextArea jta) {
+            return !jta.getText().isEmpty();
+        }
+
+        public void updateUI() {
+        }
+
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            if (getModel().isPressed()) {
+                g2.translate(1, 1);
+            }
+            g2.setStroke(new BasicStroke(2));
+            g2.setColor(Color.BLACK);
+            if (getModel().isRollover()) {
+                g2.setColor(Color.MAGENTA);
+            }
+            int delta = 6;
+            g2.drawLine(delta, delta, getWidth() - delta - 1, getHeight() - delta - 1);
+            g2.drawLine(getWidth() - delta - 1, delta, delta, getHeight() - delta - 1);
+            g2.dispose();
+        }
     }
 }
