@@ -1,13 +1,12 @@
 package com.mycompany.notepad;
 
 import javax.swing.*;
-import javax.swing.plaf.basic.BasicButtonUI;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 
-public class NotePad extends JFrame implements ActionListener, WindowListener {
-
+public final class NotePad extends JFrame implements ActionListener, WindowListener {
+    
     JTabbedPane tabbedPane = new JTabbedPane();
     private int fontSize = 15;
     private int searchIndex = 0;
@@ -192,55 +191,54 @@ public class NotePad extends JFrame implements ActionListener, WindowListener {
     }
 
     private void saveTab() {
-    JScrollPane currentScrollPane = (JScrollPane) tabbedPane.getSelectedComponent();
-    JTextArea jta = (JTextArea) currentScrollPane.getViewport().getView();
-    int selectedIndex = tabbedPane.getSelectedIndex();
-    if (selectedIndex >= 0) {
-        String title = tabbedPane.getTitleAt(selectedIndex);
-        if (!title.equals("Untitled.txt")) {
-            try {
-                // Lưu dữ liệu vào tệp
-                SaveFile(title, jta);
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        } else {
-            // Nếu tab chưa được lưu, hiển thị hộp thoại lưu
-            JFileChooser jfc = new JFileChooser();
-            int ret = jfc.showDialog(null, "Save");
-            if (ret == JFileChooser.APPROVE_OPTION) {
+        JScrollPane currentScrollPane = (JScrollPane) tabbedPane.getSelectedComponent();
+        JTextArea jta = (JTextArea) currentScrollPane.getViewport().getView();
+        int selectedIndex = tabbedPane.getSelectedIndex();
+        if (selectedIndex >= 0) {
+            String title = tabbedPane.getTitleAt(selectedIndex);
+            if (!title.equals("Untitled.txt")) {
                 try {
-                    File fyl = jfc.getSelectedFile();
-                    SaveFile(fyl.getAbsolutePath(), jta);
-                    tabbedPane.setTitleAt(selectedIndex, fyl.getName());
-                    setTitle(fyl.getName() + " - NotePad");
+                    // Lưu dữ liệu vào tệp
+                    SaveFile(title, jta);
                 } catch (IOException ex) {
                     ex.printStackTrace();
+                }
+            } else {
+                // Nếu tab chưa được lưu, hiển thị hộp thoại lưu
+                JFileChooser jfc = new JFileChooser();
+                int ret = jfc.showDialog(null, "Save");
+                if (ret == JFileChooser.APPROVE_OPTION) {
+                    try {
+                        File fyl = jfc.getSelectedFile();
+                        SaveFile(fyl.getAbsolutePath(), jta);
+                        tabbedPane.setTitleAt(selectedIndex, fyl.getName());
+                        setTitle(fyl.getName() + " - NotePad");
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
                 }
             }
         }
     }
-}
-
 
     public void OpenFile(String fname, JTextArea jta) throws IOException {
-        BufferedReader d = new BufferedReader(new InputStreamReader(new FileInputStream(fname)));
-        String l;
-        jta.setText("");
-        setCursor(new Cursor(Cursor.WAIT_CURSOR));
-        while ((l = d.readLine()) != null) {
-            jta.append(l + "\n");
+        try (BufferedReader d = new BufferedReader(new InputStreamReader(new FileInputStream(fname)))) {
+            String l;
+            jta.setText("");
+            setCursor(new Cursor(Cursor.WAIT_CURSOR));
+            while ((l = d.readLine()) != null) {
+                jta.append(l + "\n");
+            }
+            setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
         }
-        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-        d.close();
         searchIndex = 0;
     }
 
     public boolean SaveFile(String fname, JTextArea jta) throws IOException {
         System.out.println("Saving file: " + fname);
-        BufferedWriter out = new BufferedWriter(new FileWriter(fname));
-        out.write(jta.getText());
-        out.close();
+        try (BufferedWriter out = new BufferedWriter(new FileWriter(fname))) {
+            out.write(jta.getText());
+        }
         System.out.println("File saved successfully.");
         return true;
     }
@@ -276,130 +274,5 @@ public class NotePad extends JFrame implements ActionListener, WindowListener {
 
     public void Exiting() {
         System.exit(0);
-    }
-
-    public static void main(String[] args) {
-        new NotePad();
-    }
-}
-
-class ButtonTabComponent extends JPanel {
-    private final JTabbedPane pane;
-    private final NotePad notePad;
-
-    public ButtonTabComponent(final JTabbedPane pane, NotePad notePad) {
-        super(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        if (pane == null) {
-            throw new NullPointerException("TabbedPane is null");
-        }
-        this.pane = pane;
-        this.notePad = notePad;
-        setOpaque(false);
-
-        JLabel label = new JLabel() {
-            public String getText() {
-                int i = pane.indexOfTabComponent(ButtonTabComponent.this);
-                if (i != -1) {
-                    return pane.getTitleAt(i);
-                }
-                return null;
-            }
-        };
-
-        add(label);
-        label.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
-        JButton button = new TabButton();
-        add(button);
-        setBorder(BorderFactory.createEmptyBorder(2, 0, 0, 0));
-    }
-
-    private class TabButton extends JButton implements ActionListener {
-        public TabButton() {
-            int size = 17;
-            setPreferredSize(new Dimension(size, size));
-            setToolTipText("close this tab");
-            setUI(new BasicButtonUI());
-            setContentAreaFilled(false);
-            setFocusable(false);
-            setBorder(BorderFactory.createEtchedBorder());
-            setBorderPainted(false);
-            addMouseListener(new MouseAdapter() {
-                public void mouseEntered(MouseEvent e) {
-                    setBorderPainted(true);
-                }
-
-                public void mouseExited(MouseEvent e) {
-                    setBorderPainted(false);
-                }
-            });
-            setRolloverEnabled(true);
-            addActionListener(this);
-        }
-
-        public void actionPerformed(ActionEvent e) {
-    int i = pane.indexOfTabComponent(ButtonTabComponent.this);
-    if (i != -1) {
-        JScrollPane currentScrollPane = (JScrollPane) pane.getComponentAt(i);
-        JTextArea jta = (JTextArea) currentScrollPane.getViewport().getView();
-
-        // Check if the tab has unsaved changes
-        if (hasUnsavedChanges(jta)) {
-            // Kiểm tra nội dung trong JTextArea
-            if (jta.getText().trim().isEmpty()) {
-                // Nếu không có nội dung, đóng tab luôn
-                pane.remove(i);
-                return;
-            }
-
-            // Nếu có nội dung, hiển thị hộp thoại xác nhận
-            int option = JOptionPane.showConfirmDialog(null, "Do you want to save this file?", "Save File", JOptionPane.YES_NO_CANCEL_OPTION);
-            if (option == JOptionPane.YES_OPTION) {
-                try {
-                    // Lưu file
-                    notePad.SaveFile(pane.getTitleAt(i), jta);
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                    return; // Nếu có lỗi xảy ra trong quá trình lưu, không đóng tab
-                }
-            } else if (option == JOptionPane.CANCEL_OPTION || option == JOptionPane.CLOSED_OPTION) {
-                // Nếu người dùng hủy hoặc đóng hộp thoại, không đóng tab
-                return;
-            }
-        }
-
-        // Kiểm tra xem có phải là tab cuối cùng không
-        if (pane.getTabCount() == 1) {
-            JOptionPane.showMessageDialog(null, "Cannot close the last tab.", "NotePad", JOptionPane.ERROR_MESSAGE);
-            return; // Không đóng tab nếu là tab cuối cùng
-        }
-
-        // Xoá tab
-        pane.remove(i);
-    }
-}
-
-        public boolean hasUnsavedChanges(JTextArea jta) {
-            return !jta.getText().isEmpty();
-        }
-
-        public void updateUI() {
-        }
-
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D) g.create();
-            if (getModel().isPressed()) {
-                g2.translate(1, 1);
-            }
-            g2.setStroke(new BasicStroke(2));
-            g2.setColor(Color.BLACK);
-            if (getModel().isRollover()) {
-                g2.setColor(Color.MAGENTA);
-            }
-            int delta = 6;
-            g2.drawLine(delta, delta, getWidth() - delta - 1, getHeight() - delta - 1);
-            g2.drawLine(getWidth() - delta - 1, delta, delta, getHeight() - delta - 1);
-            g2.dispose();
-        }
     }
 }
