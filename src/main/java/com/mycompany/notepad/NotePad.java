@@ -4,6 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class NotePad extends JFrame implements ActionListener, WindowListener {
     
@@ -11,6 +13,9 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
     private int fontSize = 15;
     private int searchIndex = 0;
     public int status_save = 0;
+    
+    // Map to store file paths for each tab
+    public Map<Integer, String> tabFilePaths = new HashMap<>();
 
     public NotePad() {
         Font fnt = new Font("Arial", Font.PLAIN, fontSize);
@@ -89,6 +94,7 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
         JFileChooser jfc = new JFileChooser();
         JScrollPane currentScrollPane = (JScrollPane) tabbedPane.getSelectedComponent();
         JTextArea jta = (JTextArea) currentScrollPane.getViewport().getView();
+        int selectedIndex = tabbedPane.getSelectedIndex();
 
         if (e.getActionCommand().equals("New Tab")) {
             addNewTab("Untitled.txt", new Font("Arial", Font.PLAIN, fontSize));
@@ -99,6 +105,7 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
                     File fyl = jfc.getSelectedFile();
                     OpenFile(fyl.getAbsolutePath(), jta);
                     tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), fyl.getName());
+                    tabFilePaths.put(selectedIndex, fyl.getAbsolutePath());
                     setTitle(fyl.getName() + " - NotePad");
                     searchIndex = 0;
                 } catch (IOException ex) {
@@ -115,6 +122,7 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
                     File fyl = jfc.getSelectedFile();
                     SaveFile(fyl.getAbsolutePath(), jta);
                     tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), fyl.getName());
+                    tabFilePaths.put(selectedIndex, fyl.getAbsolutePath());
                     setTitle(fyl.getName() + " - NotePad");
                     status_save = 1;
                 } catch (IOException ex) {
@@ -198,16 +206,15 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
         JTextArea jta = (JTextArea) currentScrollPane.getViewport().getView();
         int selectedIndex = tabbedPane.getSelectedIndex();
         if (selectedIndex >= 0) {
-            String title = tabbedPane.getTitleAt(selectedIndex);
-            if (!title.equals("Untitled.txt")) {
+            String filePath = tabFilePaths.get(selectedIndex);
+            if (filePath != null && !filePath.isEmpty()) {
                 try {
-                    // Lưu dữ liệu vào tệp
-                    SaveFile(title, jta);
+                    SaveFile(filePath, jta);
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
             } else {
-                // Nếu tab chưa được lưu, hiển thị hộp thoại lưu
+                // If the tab has not been saved before, show the save dialog
                 JFileChooser jfc = new JFileChooser();
                 int ret = jfc.showDialog(null, "Save");
                 if (ret == JFileChooser.APPROVE_OPTION) {
@@ -215,6 +222,7 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
                         File fyl = jfc.getSelectedFile();
                         SaveFile(fyl.getAbsolutePath(), jta);
                         tabbedPane.setTitleAt(selectedIndex, fyl.getName());
+                        tabFilePaths.put(selectedIndex, fyl.getAbsolutePath());
                         setTitle(fyl.getName() + " - NotePad");
                     } catch (IOException ex) {
                         ex.printStackTrace();
