@@ -10,6 +10,7 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
     JTabbedPane tabbedPane = new JTabbedPane();
     private int fontSize = 15;
     private int searchIndex = 0;
+    public int status_save = 0;
 
     public NotePad() {
         Font fnt = new Font("Arial", Font.PLAIN, fontSize);
@@ -106,6 +107,7 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
             }
         } else if (e.getActionCommand().equals("Save")) {
             saveTab();
+            status_save = 1;
         } else if (e.getActionCommand().equals("Save As")) {
             int ret = jfc.showDialog(null, "Save As");
             if (ret == JFileChooser.APPROVE_OPTION) {
@@ -114,6 +116,7 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
                     SaveFile(fyl.getAbsolutePath(), jta);
                     tabbedPane.setTitleAt(tabbedPane.getSelectedIndex(), fyl.getName());
                     setTitle(fyl.getName() + " - NotePad");
+                    status_save = 1;
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }

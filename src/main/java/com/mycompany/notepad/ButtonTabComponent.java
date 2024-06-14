@@ -93,7 +93,7 @@ class ButtonTabComponent extends JPanel {
                 JTextArea jta = (JTextArea) currentScrollPane.getViewport().getView();
 
                 // Kiểm tra xem tab có thay đổi không được lưu không
-                if (hasUnsavedChanges(jta)) {
+                if (hasUnsavedChanges(jta) && notePad.status_save == 0) {
                     // Kiểm tra nội dung trong JTextArea
                     if (jta.getText().trim().isEmpty()) {
                         // Nếu không có nội dung, đóng tab luôn
@@ -112,6 +112,7 @@ class ButtonTabComponent extends JPanel {
                                 // Lưu file
                                 File file = fileChooser.getSelectedFile();
                                 notePad.SaveFile(file.getAbsolutePath(), jta);
+                                
                             } catch (IOException ex) {
                                 ex.printStackTrace();
                                 return; // Nếu có lỗi xảy ra trong quá trình lưu, không đóng tab
@@ -125,13 +126,12 @@ class ButtonTabComponent extends JPanel {
                         return;
                     }
                 }
-
+                
                 // Kiểm tra xem có phải là tab cuối cùng không
                 if (pane.getTabCount() == 1) {
-                    JOptionPane.showMessageDialog(null, "Cannot close the last tab.", "NotePad", JOptionPane.ERROR_MESSAGE);
-                    return; // Không đóng tab nếu là tab cuối cùng
+                    System.exit(0);
+                    // Đóng chương trình khi là tab cuối cùng
                 }
-                // Xoá tab
                 pane.remove(i);
             }
         }
