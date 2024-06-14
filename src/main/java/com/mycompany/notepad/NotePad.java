@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class NotePad extends JFrame implements ActionListener, WindowListener {
-    
+
     JTabbedPane tabbedPane = new JTabbedPane();
     private int fontSize = 15;
     private int searchIndex = 0;
@@ -108,6 +108,7 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
                     tabFilePaths.put(selectedIndex, fyl.getAbsolutePath());
                     setTitle(fyl.getName() + " - NotePad");
                     searchIndex = 0;
+                    status_save = 0; // Reset save status when opening a new file
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
@@ -243,6 +244,7 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
             setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
         }
         searchIndex = 0;
+        status_save = 0; // Reset save status when opening a new file
     }
 
     public boolean SaveFile(String fname, JTextArea jta) throws IOException {
@@ -251,6 +253,7 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
             out.write(jta.getText());
         }
         System.out.println("File saved successfully.");
+        status_save = 0; // Reset save status after saving
         return true;
     }
 
@@ -286,4 +289,9 @@ public final class NotePad extends JFrame implements ActionListener, WindowListe
     public void Exiting() {
         System.exit(0);
     }
+
+    public static void main(String[] args) {
+        new NotePad();
+    }
 }
+
